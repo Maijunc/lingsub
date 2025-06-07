@@ -1,3 +1,4 @@
+from lingua import Language
 default_preprocess_options = {
     'atten_lim_db': 15,
     'vocal_separation_model': 'htdemucs'  # 可选值：htdemucs, htdemucs_ft, mdx_extra, mdx_extra_q
@@ -44,4 +45,11 @@ default_vad_options = {
     "max_speech_duration_s": float("inf"),
     "min_silence_duration_ms": 2000,
     "speech_pad_ms": 400
+}
+
+supported_languages_lingua = {
+    Language.CATALAN, Language.CHINESE, Language.CROATIAN, Language.DANISH, Language.DUTCH, Language.ENGLISH,
+    Language.FINNISH, Language.FRENCH, Language.GERMAN, Language.GREEK, Language.ITALIAN, Language.JAPANESE,
+    Language.KOREAN, Language.LITHUANIAN, Language.MACEDONIAN, Language.BOKMAL, Language.POLISH, Language.PORTUGUESE,
+    Language.ROMANIAN, Language.RUSSIAN, Language.SLOVENE, Language.SPANISH, Language.SWEDISH, Language.UKRAINIAN
 }

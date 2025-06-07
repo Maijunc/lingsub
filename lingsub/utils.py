@@ -1,12 +1,18 @@
 from typing import List, Dict, Any, Union
 
+import tiktoken
 import torch
+import re
 from pathlib import Path
 import filetype
 import ffmpeg
 import spacy
 import time
 import audioread
+import langcodes
+from lingua import LanguageDetectorBuilder
+
+from lingsub.defaults import supported_languages_lingua
 from lingsub.logger import logger
 
 def extend_filename(filename: Path, extend: str) -> Path:
@@ -162,3 +168,51 @@ def extract_audio(path: Path) -> Path:
         f.write(audio)
 
     return audio_path
+
+def parse_timestamp(time_stamp: str, fmt: str) -> float:
+    """
+    Parse a timestamp from a subtitle file and convert it to seconds.
+
+    Args:
+        time_stamp (str): The timestamp to parse.
+        fmt (str): The format of `time_stamp`. Supported values are:
+            - 'lrc' for LRC format, e.g., '1:23.45'
+            - 'srt' for SRT format, e.g., '01:23:45,678'
+
+    Returns:
+        float: The timestamp in seconds.
+
+    Raises:
+        ValueError: If `time_stamp` does not match the expected format for the specified `fmt`.
+    """
+
+    if fmt == 'lrc':
+        if not re.match(r'^\d+:\d+\.\d+$', time_stamp):
+            raise ValueError(f"Invalid timestamp format for LRC: {time_stamp}")
+        minutes, seconds = time_stamp.split(':')
+        seconds, hundredths_of_sec = seconds.split('.')
+        return int(minutes) * 60 + int(seconds) + int(hundredths_of_sec) / 100.0
+    elif fmt == 'srt':
+        if not re.match(r'^\d+:\d+:\d+,\d+$', time_stamp):
+            raise ValueError(f"Invalid timestamp format for SRT: {time_stamp}")
+        hours, minutes, seconds = time_stamp.split(':')
+        seconds, milliseconds = seconds.split(',')
+        return int(hours) * 3600 + int(minutes) * 60 + int(seconds) + int(milliseconds) / 1000.0
+    else:
+        raise ValueError(f"Unsupported timestamp format: {fmt}")
+
+def detect_lang(text):
+    detector = LanguageDetectorBuilder.from_languages(*supported_languages_lingua).build()
+    name = detector.detect_language_of(text).name.lower()
+    lang_code = langcodes.Language.find(name).language
+    return lang_code
+
+def get_messages_token_number(messages: List[Dict[str, Any]], model: str = "gpt-3.5-turbo") -> int:
+    total = sum([get_text_token_number(element['content'], model=model) for element in messages])
+
+    return total
+
+def get_text_token_number(text: str, model: str = "gpt-3.5-turbo") -> int:
+    tokens = tiktoken.encoding_for_model(model).encode(text)
+
+    return len(tokens)
